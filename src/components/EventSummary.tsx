@@ -1,0 +1,33 @@
+import { EventResponse } from '../api/contracts';
+
+type EventSummaryProps = {
+  event: EventResponse;
+};
+
+function formatDateRange(startAt: string, endAt: string): string {
+  const formatOptions: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  };
+
+  const start = new Date(startAt).toLocaleString('en-US', formatOptions);
+  const end = new Date(endAt).toLocaleString('en-US', formatOptions);
+
+  return `${start} - ${end}`;
+}
+
+export function EventSummary({ event }: EventSummaryProps) {
+  return (
+    <section className="card event-summary fade-in" aria-label="Event details">
+      <div className="event-summary__top">
+        <h2>{event.title}</h2>
+        <span className="category-pill">{event.category}</span>
+      </div>
+      <p className="event-summary__meta">{formatDateRange(event.startAt, event.endAt)}</p>
+      <p className="event-summary__meta">{event.venue}</p>
+    </section>
+  );
+}
