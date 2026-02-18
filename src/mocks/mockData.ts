@@ -2,11 +2,11 @@ import { EventResponse, SeatResponse } from '../api/contracts';
 
 export const mockEvent: EventResponse = {
   id: 1,
-  title: 'IU Live in Seoul',
+  title: '아이유 서울 라이브',
   category: 'CONCERT',
   startAt: '2026-05-01T19:00:00',
   endAt: '2026-05-01T22:00:00',
-  venue: 'Jamsil Main Stadium',
+  venue: '잠실 주경기장',
 };
 
 export const mockSeats: SeatResponse[] = [

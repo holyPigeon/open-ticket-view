@@ -127,10 +127,10 @@ describe('EventDetailPage', () => {
 
     renderPage();
 
-    const seatButton = await screen.findByRole('button', { name: 'A2 AVAILABLE' });
+    const seatButton = await screen.findByRole('button', { name: 'A2 예약 가능' });
     await userEvent.click(seatButton);
 
-    expect(screen.getByText('1 seat(s) selected')).toBeInTheDocument();
+    expect(screen.getByText('1개 좌석 선택됨')).toBeInTheDocument();
     expect(screen.getByText('₩150,000')).toBeInTheDocument();
   });
 
@@ -163,7 +163,7 @@ describe('EventDetailPage', () => {
 
     renderPage();
 
-    const button = await screen.findByRole('button', { name: 'Book selected seats' });
+    const button = await screen.findByRole('button', { name: '선택 좌석 예매하기' });
     expect(button).toBeDisabled();
   });
 
@@ -222,8 +222,8 @@ describe('EventDetailPage', () => {
 
     renderPage();
 
-    await userEvent.click(await screen.findByRole('button', { name: 'A2 AVAILABLE' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Book selected seats' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'A2 예약 가능' }));
+    await userEvent.click(screen.getByRole('button', { name: '선택 좌석 예매하기' }));
 
     expect(await screen.findByText('Queue token is invalid')).toBeInTheDocument();
   });
@@ -237,8 +237,8 @@ describe('EventDetailPage', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText('Mock Mode')).toBeInTheDocument();
+      expect(screen.getByText('목 데이터 모드')).toBeInTheDocument();
     });
-    expect(screen.getByText('Live API unavailable. Showing mock data.')).toBeInTheDocument();
+    expect(screen.getByText('실서버 API에 연결할 수 없어 목 데이터를 표시합니다.')).toBeInTheDocument();
   });
 });

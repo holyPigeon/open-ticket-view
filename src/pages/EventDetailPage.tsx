@@ -61,7 +61,7 @@ export function EventDetailPage() {
         setMode('MOCK');
         setEvent({ ...mockEvent, id: eventId });
         setSeats(mockSeats.map((seat) => ({ ...seat, event: { ...mockEvent, id: eventId } })));
-        setPageError('Live API unavailable. Showing mock data.');
+        setPageError('실서버 API에 연결할 수 없어 목 데이터를 표시합니다.');
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -104,7 +104,7 @@ export function EventDetailPage() {
         setBookingPending(false);
         setBookingFeedback({
           tone: 'success',
-          message: 'Mock booking succeeded. Connect live auth/queue tokens for real booking.',
+          message: '목 예매가 완료되었습니다. 실제 예매는 인증/대기열 토큰 연동 후 이용해 주세요.',
         });
       }, 250);
       return;
@@ -117,10 +117,10 @@ export function EventDetailPage() {
         authToken || undefined,
         queueToken || undefined
       );
-      setBookingFeedback({ tone: 'success', message: 'Booking created successfully.' });
+      setBookingFeedback({ tone: 'success', message: '예매가 완료되었습니다.' });
       setSelectedSeatIds([]);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Booking failed.';
+      const message = error instanceof Error ? error.message : '예매에 실패했습니다.';
       setBookingFeedback({ tone: 'error', message });
     } finally {
       setBookingPending(false);
@@ -141,7 +141,7 @@ export function EventDetailPage() {
     return (
       <main className="page-shell">
         <PageHeader mode={mode} onLogout={handleLogout} />
-        <InlineAlert tone="error" message="Unable to load event details." />
+        <InlineAlert tone="error" message="이벤트 상세 정보를 불러오지 못했습니다." />
       </main>
     );
   }

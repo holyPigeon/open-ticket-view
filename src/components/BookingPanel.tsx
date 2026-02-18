@@ -11,15 +11,15 @@ export function BookingPanel({ selectedSeats, bookingPending, onSubmit }: Bookin
   const totalPrice = calculateTotalPrice(selectedSeats);
 
   return (
-    <section className="card booking-panel fade-in" aria-label="Booking panel">
+    <section className="card booking-panel fade-in" aria-label="예매 패널">
       <div className="section-head">
-        <h3>Booking Summary</h3>
-        <span className="section-subtext">{selectedSeats.length} seat(s) selected</span>
+        <h3>예매 요약</h3>
+        <span className="section-subtext">{selectedSeats.length}개 좌석 선택됨</span>
       </div>
 
       <ul className="selected-list">
         {selectedSeats.length === 0 ? (
-          <li className="selected-list__empty">Pick seats to create a booking.</li>
+          <li className="selected-list__empty">예매할 좌석을 선택해 주세요.</li>
         ) : (
           selectedSeats.map((seat) => (
             <li key={seat.id} className="selected-list__item">
@@ -31,7 +31,7 @@ export function BookingPanel({ selectedSeats, bookingPending, onSubmit }: Bookin
       </ul>
 
       <div className="booking-total">
-        <span>Total</span>
+        <span>총액</span>
         <strong>₩{totalPrice.toLocaleString('en-US')}</strong>
       </div>
 
@@ -41,7 +41,7 @@ export function BookingPanel({ selectedSeats, bookingPending, onSubmit }: Bookin
         onClick={onSubmit}
         disabled={selectedSeats.length === 0 || bookingPending}
       >
-        {bookingPending ? 'Submitting...' : 'Book selected seats'}
+        {bookingPending ? '예매 처리 중...' : '선택 좌석 예매하기'}
       </button>
     </section>
   );

@@ -35,7 +35,7 @@ describe('Login flow and route guard', () => {
   it('redirects unauthenticated user to login page', async () => {
     renderAuthFlow(['/events/1']);
 
-    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '로그인' })).toBeInTheDocument();
   });
 
   it('stores token and redirects to requested route after successful login', async () => {
@@ -52,7 +52,7 @@ describe('Login flow and route guard', () => {
 
     renderAuthFlow(['/events/3']);
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Sign in' }));
+    await userEvent.click(await screen.findByRole('button', { name: '로그인' }));
 
     expect(await screen.findByText('Protected Event Page')).toBeInTheDocument();
     expect(localStorage.getItem(AUTH_TOKEN_KEY)).toBe('jwt-login');
@@ -75,7 +75,7 @@ describe('Login flow and route guard', () => {
 
     renderAuthFlow(['/login']);
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Sign in' }));
+    await userEvent.click(await screen.findByRole('button', { name: '로그인' }));
 
     expect(await screen.findByText('Invalid credentials')).toBeInTheDocument();
   });
