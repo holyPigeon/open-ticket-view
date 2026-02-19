@@ -2,12 +2,15 @@ import { z } from 'zod';
 import { TicketClient } from './client';
 import {
   BookingCreateRequest,
+  EventListQuery,
+  PageResponse,
   EventResponse,
   LoginRequest,
   LoginResponse,
   SeatResponse,
   bookingCreateSchema,
   eventSchema,
+  pageSchema,
   loginRequestSchema,
   loginResponseSchema,
   seatSchema,
@@ -25,6 +28,31 @@ export function createTicketClient(authToken?: string, queueToken?: string) {
     authToken,
     queueToken,
   });
+}
+
+function toQueryString(query?: EventListQuery): string {
+  const searchParams = new URLSearchParams();
+  searchParams.set('page', String(query?.page ?? 0));
+  searchParams.set('size', String(query?.size ?? 10));
+  searchParams.set('sort', query?.sort ?? 'id,desc');
+
+  if (query?.title) {
+    searchParams.set('title', query.title);
+  }
+  if (query?.category) {
+    searchParams.set('category', query.category);
+  }
+  if (query?.venue) {
+    searchParams.set('venue', query.venue);
+  }
+
+  return searchParams.toString();
+}
+
+export async function fetchEvents(query?: EventListQuery): Promise<PageResponse<EventResponse>> {
+  const client = createTicketClient();
+  const result = await client.get(`/api/v1/events?${toQueryString(query)}`, pageSchema(eventSchema));
+  return result.data;
 }
 
 export async function fetchEventDetail(eventId: number, authToken?: string): Promise<EventResponse> {

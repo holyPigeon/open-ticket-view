@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { setAuthToken } from '../auth/storage';
 import { login } from '../api/openTicketApi';
 import { InlineAlert } from '../components/InlineAlert';
+import { TopNavBar } from '../components/TopNavBar';
 
 type LoginLocationState = {
   from?: string;
@@ -12,7 +13,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const state = (location.state as LoginLocationState | null) ?? null;
-  const redirectPath = state?.from ?? '/events/1';
+  const redirectPath = state?.from ?? '/';
 
   const [email, setEmail] = useState('user1@gmail.com');
   const [password, setPassword] = useState('password1');
@@ -44,6 +45,7 @@ export function LoginPage() {
 
   return (
     <main className="login-shell">
+      <TopNavBar className="login-shell__nav" />
       <section className="login-card fade-in" aria-label="로그인 폼">
         <img className="login-logo" src="/open-logo.svg" alt="오픈 로고" />
         <h1>로그인</h1>

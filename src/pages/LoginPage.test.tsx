@@ -16,6 +16,10 @@ function renderAuthFlow(initialEntries: string[]) {
         element: <LoginPage />,
       },
       {
+        path: '/',
+        element: <div>홈 페이지</div>,
+      },
+      {
         element: <RequireAuth />,
         children: [
           {
@@ -36,6 +40,12 @@ describe('Login flow and route guard', () => {
     renderAuthFlow(['/events/1']);
 
     expect(await screen.findByRole('heading', { name: '로그인' })).toBeInTheDocument();
+  });
+
+  it('비로그인 사용자가 루트 경로에 접근하면 홈 페이지 렌더링', async () => {
+    renderAuthFlow(['/']);
+
+    expect(await screen.findByText('홈 페이지')).toBeInTheDocument();
   });
 
   it('stores token and redirects to requested route after successful login', async () => {

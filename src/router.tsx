@@ -1,14 +1,14 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom';
-import { isAuthenticated } from './auth/storage';
 import { RequireAuth } from './components/RequireAuth';
 import { EventDetailPage } from './pages/EventDetailPage';
+import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 
-function RootRedirect() {
-  return <Navigate to={isAuthenticated() ? '/events/1' : '/login'} replace />;
-}
-
 export const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <HomePage />,
+  },
   {
     path: '/login',
     element: <LoginPage />,
@@ -24,6 +24,6 @@ export const router = createBrowserRouter([
   },
   {
     path: '*',
-    element: <RootRedirect />,
+    element: <Navigate to="/" replace />,
   },
 ]);

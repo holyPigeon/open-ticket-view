@@ -1,9 +1,6 @@
-<svg width="504" height="200" viewBox="0 0 504 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="504" height="200" fill="black" rx="20"/>
-  <g fill="#3A4CFF">
-    <path d="M78 147c-26 0-44-17-44-44v-6c0-27 18-44 44-44s44 17 44 44v6c0 27-18 44-44 44Zm0-18c14 0 24-9 24-26v-6c0-17-10-26-24-26s-24 9-24 26v6c0 17 10 26 24 26Z"/>
-    <path d="M141 159V77h39c24 0 37 11 37 31v2c0 20-13 31-37 31h-19v18h-20Zm20-35h17c13 0 19-4 19-14v-2c0-10-6-14-19-14h-17v30Z"/>
-    <path d="M266 147c-24 0-40-14-40-37v-2c0-23 16-37 39-37 22 0 37 13 37 35v6h-57c1 11 9 18 21 18 9 0 15-3 18-9h18c-4 16-18 26-36 26Zm-20-47h38c-1-8-7-13-18-13-10 0-17 5-20 13Z"/>
-    <path d="M313 145V77h20v10c5-8 13-12 24-12 18 0 30 11 30 31v39h-20v-36c0-11-6-17-16-17-10 0-18 6-18 18v35h-20Z"/>
+<svg width="860" height="220" viewBox="0 0 860 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g font-size="96" font-weight="700" font-family="Manrope, Avenir Next, sans-serif" dominant-baseline="middle">
+    <text x="290" y="110" fill="#3549ff" text-anchor="middle">Open</text>
+    <text x="570" y="110" fill="#000000" text-anchor="middle">ticket</text>
   </g>
 </svg>

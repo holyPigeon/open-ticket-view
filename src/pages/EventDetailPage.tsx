@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { ApiMode, EventResponse, SeatResponse } from '../api/contracts';
 import { fetchEventDetail, fetchEventSeats, submitBooking } from '../api/openTicketApi';
-import { clearAuthToken, getAuthToken } from '../auth/storage';
+import { getAuthToken } from '../auth/storage';
 import { BookingPanel } from '../components/BookingPanel';
 import { EventSummary } from '../components/EventSummary';
 import { InlineAlert } from '../components/InlineAlert';
-import { PageHeader } from '../components/PageHeader';
 import { SeatGrid } from '../components/SeatGrid';
+import { TopNavBar } from '../components/TopNavBar';
 import { mockEvent, mockSeats } from '../mocks/mockData';
 
 function parseEventId(rawId: string | undefined): number {
@@ -16,7 +16,6 @@ function parseEventId(rawId: string | undefined): number {
 }
 
 export function EventDetailPage() {
-  const navigate = useNavigate();
   const { eventId: eventIdParam } = useParams();
   const eventId = parseEventId(eventIdParam);
 
@@ -130,7 +129,16 @@ export function EventDetailPage() {
   if (isLoading) {
     return (
       <main className="page-shell">
-        <PageHeader mode={mode} onLogout={handleLogout} />
+        <TopNavBar />
+        <section className="card detail-heading fade-in">
+          <p className="eyebrow">이벤트</p>
+          <div className="detail-heading__top">
+            <h1>이벤트 상세</h1>
+            <span className={`mode-pill ${mode === 'MOCK' ? 'mode-pill--mock' : 'mode-pill--live'}`}>
+              {mode === 'MOCK' ? '목 데이터 모드' : '실서버 API'}
+            </span>
+          </div>
+        </section>
         <div className="card skeleton" />
         <div className="card skeleton" />
       </main>
@@ -140,7 +148,16 @@ export function EventDetailPage() {
   if (!event) {
     return (
       <main className="page-shell">
-        <PageHeader mode={mode} onLogout={handleLogout} />
+        <TopNavBar />
+        <section className="card detail-heading fade-in">
+          <p className="eyebrow">이벤트</p>
+          <div className="detail-heading__top">
+            <h1>이벤트 상세</h1>
+            <span className={`mode-pill ${mode === 'MOCK' ? 'mode-pill--mock' : 'mode-pill--live'}`}>
+              {mode === 'MOCK' ? '목 데이터 모드' : '실서버 API'}
+            </span>
+          </div>
+        </section>
         <InlineAlert tone="error" message="이벤트 상세 정보를 불러오지 못했습니다." />
       </main>
     );
@@ -148,7 +165,16 @@ export function EventDetailPage() {
 
   return (
     <main className="page-shell">
-      <PageHeader mode={mode} onLogout={handleLogout} />
+      <TopNavBar />
+      <section className="card detail-heading fade-in">
+        <p className="eyebrow">이벤트</p>
+        <div className="detail-heading__top">
+          <h1>이벤트 상세</h1>
+          <span className={`mode-pill ${mode === 'MOCK' ? 'mode-pill--mock' : 'mode-pill--live'}`}>
+            {mode === 'MOCK' ? '목 데이터 모드' : '실서버 API'}
+          </span>
+        </div>
+      </section>
       {pageError ? <InlineAlert tone="info" message={pageError} /> : null}
       {bookingFeedback ? <InlineAlert tone={bookingFeedback.tone} message={bookingFeedback.message} /> : null}
 
@@ -168,9 +194,4 @@ export function EventDetailPage() {
       </section>
     </main>
   );
-
-  function handleLogout() {
-    clearAuthToken();
-    navigate('/login', { replace: true });
-  }
 }

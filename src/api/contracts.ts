@@ -16,6 +16,65 @@ export const eventSchema = z.object({
 });
 export type EventResponse = z.infer<typeof eventSchema>;
 
+export const pageSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
+  z.object({
+    content: z.array(itemSchema),
+    pageable: z.object({
+      pageNumber: z.number(),
+      pageSize: z.number(),
+      offset: z.number(),
+      paged: z.boolean(),
+      unpaged: z.boolean(),
+      sort: z.object({
+        sorted: z.boolean(),
+        unsorted: z.boolean(),
+        empty: z.boolean(),
+      }),
+    }),
+    totalPages: z.number(),
+    totalElements: z.number(),
+    last: z.boolean(),
+    first: z.boolean(),
+    number: z.number(),
+    size: z.number(),
+    numberOfElements: z.number(),
+    empty: z.boolean(),
+    sort: z.object({
+      sorted: z.boolean(),
+      unsorted: z.boolean(),
+      empty: z.boolean(),
+    }),
+  });
+
+export type PageResponse<T> = {
+  content: T[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+    offset: number;
+    paged: boolean;
+    unpaged: boolean;
+    sort: {
+      sorted: boolean;
+      unsorted: boolean;
+      empty: boolean;
+    };
+  };
+  totalPages: number;
+  totalElements: number;
+  last: boolean;
+  first: boolean;
+  number: number;
+  size: number;
+  numberOfElements: number;
+  empty: boolean;
+  sort: {
+    sorted: boolean;
+    unsorted: boolean;
+    empty: boolean;
+  };
+};
+
 export const seatSchema = z.object({
   id: z.number(),
   event: eventSchema,
@@ -63,3 +122,12 @@ export type TicketClientConfig = {
 };
 
 export type ApiMode = 'LIVE' | 'MOCK';
+
+export type EventListQuery = {
+  page?: number;
+  size?: number;
+  sort?: string;
+  title?: string;
+  category?: Category;
+  venue?: string;
+};
