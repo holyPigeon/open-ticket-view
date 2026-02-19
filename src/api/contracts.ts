@@ -16,6 +16,17 @@ export const eventSchema = z.object({
 });
 export type EventResponse = z.infer<typeof eventSchema>;
 
+export const queuePhaseSchema = z.enum(['WAITING', 'ALLOWED']);
+export type QueuePhase = z.infer<typeof queuePhaseSchema>;
+
+export const queueStatusSchema = z.object({
+  token: z.string(),
+  phase: queuePhaseSchema,
+  position: z.number(),
+  remainingSeconds: z.number(),
+});
+export type QueueStatusResponse = z.infer<typeof queueStatusSchema>;
+
 export const pageSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
   z.object({
     content: z.array(itemSchema),

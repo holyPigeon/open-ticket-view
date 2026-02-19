@@ -7,12 +7,14 @@ import {
   EventResponse,
   LoginRequest,
   LoginResponse,
+  QueueStatusResponse,
   SeatResponse,
   bookingCreateSchema,
   eventSchema,
   pageSchema,
   loginRequestSchema,
   loginResponseSchema,
+  queueStatusSchema,
   seatSchema,
 } from './contracts';
 
@@ -58,6 +60,19 @@ export async function fetchEvents(query?: EventListQuery): Promise<PageResponse<
 export async function fetchEventDetail(eventId: number, authToken?: string): Promise<EventResponse> {
   const client = createTicketClient(authToken);
   const result = await client.get(`/api/v1/events/${eventId}`, eventSchema);
+  return result.data;
+}
+
+export async function enterQueue(eventId: number, authToken?: string): Promise<QueueStatusResponse> {
+  const client = createTicketClient(authToken);
+  const result = await client.post(`/api/v1/queue/events/${eventId}`, {}, queueStatusSchema);
+  return result.data;
+}
+
+export async function checkQueueStatus(eventId: number, token: string, authToken?: string): Promise<QueueStatusResponse> {
+  const client = createTicketClient(authToken);
+  const encodedToken = encodeURIComponent(token);
+  const result = await client.get(`/api/v1/queue/events/${eventId}?token=${encodedToken}`, queueStatusSchema);
   return result.data;
 }
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '../test/setup';
-import { fetchEvents, login } from './openTicketApi';
+import { checkQueueStatus, enterQueue, fetchEvents, login } from './openTicketApi';
 
 describe('login API', () => {
   it('sends JSON body and parses login response envelope', async () => {
@@ -84,5 +84,64 @@ describe('events API', () => {
     expect(requestQuery).toContain('sort=id%2Cdesc');
     expect(requestQuery).toContain('title=%EC%9D%B4%EB%B2%A4%ED%8A%B8');
     expect(requestQuery).toContain('category=CONCERT');
+  });
+});
+
+describe('queue API', () => {
+  it('enterQueue가 토큰/phase를 파싱하고 Authorization 헤더를 전달', async () => {
+    let authHeader = '';
+
+    server.use(
+      http.post('http://localhost:8080/api/v1/queue/events/1', ({ request }) => {
+        authHeader = request.headers.get('authorization') ?? '';
+
+        return HttpResponse.json({
+          code: 200,
+          status: 'OK',
+          message: 'OK',
+          data: {
+            token: 'queue-token-1',
+            phase: 'WAITING',
+            position: 12,
+            remainingSeconds: 0,
+          },
+        });
+      })
+    );
+
+    const response = await enterQueue(1, 'jwt-token');
+
+    expect(authHeader).toBe('Bearer jwt-token');
+    expect(response.token).toBe('queue-token-1');
+    expect(response.phase).toBe('WAITING');
+    expect(response.position).toBe(12);
+  });
+
+  it('checkQueueStatus가 token query 파라미터를 전달하고 응답을 파싱', async () => {
+    let requestQuery = '';
+
+    server.use(
+      http.get('http://localhost:8080/api/v1/queue/events/1', ({ request }) => {
+        requestQuery = new URL(request.url).search;
+
+        return HttpResponse.json({
+          code: 200,
+          status: 'OK',
+          message: 'OK',
+          data: {
+            token: 'queue-token-1',
+            phase: 'ALLOWED',
+            position: 0,
+            remainingSeconds: 590,
+          },
+        });
+      })
+    );
+
+    const response = await checkQueueStatus(1, 'queue-token-1');
+
+    expect(requestQuery).toContain('token=queue-token-1');
+    expect(response.phase).toBe('ALLOWED');
+    expect(response.remainingSeconds).toBe(590);
   });
 });
