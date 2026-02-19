@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ApiMode, EventResponse, SeatResponse } from '../api/contracts';
-import { fetchEventDetail, fetchEventSeats, submitBooking } from '../api/openTicketApi';
+import { enterQueue, fetchEventDetail, fetchEventSeats, submitBooking } from '../api/openTicketApi';
+import { clearQueueToken, getQueueToken, setQueueToken } from '../auth/queueStorage';
 import { getAuthToken } from '../auth/storage';
 import { BookingPanel } from '../components/BookingPanel';
 import { EventSummary } from '../components/EventSummary';
@@ -10,12 +11,19 @@ import { SeatGrid } from '../components/SeatGrid';
 import { TopNavBar } from '../components/TopNavBar';
 import { mockEvent, mockSeats } from '../mocks/mockData';
 
+const QUEUE_TOKEN_ERROR_FRAGMENTS = ['대기열 토큰이 유효하지 않거나 만료되었습니다.', '유효하지 않은 대기열 토큰'];
+
 function parseEventId(rawId: string | undefined): number {
   const parsed = Number(rawId);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
 }
 
+function isQueueTokenError(message: string): boolean {
+  return QUEUE_TOKEN_ERROR_FRAGMENTS.some((fragment) => message.includes(fragment));
+}
+
 export function EventDetailPage() {
+  const navigate = useNavigate();
   const { eventId: eventIdParam } = useParams();
   const eventId = parseEventId(eventIdParam);
 
@@ -23,15 +31,46 @@ export function EventDetailPage() {
   const [seats, setSeats] = useState<SeatResponse[]>([]);
   const [selectedSeatIds, setSelectedSeatIds] = useState<number[]>([]);
   const [authToken] = useState(() => getAuthToken() ?? '');
-  const [queueToken] = useState(() => localStorage.getItem('open-ticket:queue-token') ?? '');
   const [mode, setMode] = useState<ApiMode>('LIVE');
   const [isLoading, setIsLoading] = useState(true);
   const [pageError, setPageError] = useState<string>('');
   const [bookingPending, setBookingPending] = useState(false);
   const [bookingFeedback, setBookingFeedback] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
 
+  const ensureQueueToken = useCallback(
+    async (forceRefresh = false): Promise<string | null> => {
+      if (!forceRefresh) {
+        const storedToken = getQueueToken(eventId);
+        if (storedToken) {
+          return storedToken;
+        }
+      }
+
+      const queueStatus = await enterQueue(eventId, authToken || undefined);
+      setQueueToken(eventId, queueStatus.token);
+
+      if (queueStatus.phase === 'WAITING') {
+        navigate(`/events/${eventId}/queue`, {
+          replace: true,
+          state: { token: queueStatus.token },
+        });
+        return null;
+      }
+
+      return queueStatus.token;
+    },
+    [authToken, eventId, navigate]
+  );
+
   useEffect(() => {
     let isMounted = true;
+
+    async function loadFromLiveApi(queueToken: string) {
+      return Promise.all([
+        fetchEventDetail(eventId, authToken || undefined),
+        fetchEventSeats(eventId, authToken || undefined, queueToken),
+      ]);
+    }
 
     async function loadDetail() {
       setIsLoading(true);
@@ -40,18 +79,43 @@ export function EventDetailPage() {
       setBookingFeedback(null);
 
       try {
-        const [eventResponse, seatsResponse] = await Promise.all([
-          fetchEventDetail(eventId, authToken || undefined),
-          fetchEventSeats(eventId, authToken || undefined, queueToken || undefined),
-        ]);
-
-        if (!isMounted) {
+        let queueToken = await ensureQueueToken();
+        if (!queueToken || !isMounted) {
           return;
         }
 
-        setMode('LIVE');
-        setEvent(eventResponse);
-        setSeats(seatsResponse);
+        try {
+          const [eventResponse, seatsResponse] = await loadFromLiveApi(queueToken);
+          if (!isMounted) {
+            return;
+          }
+
+          setMode('LIVE');
+          setEvent(eventResponse);
+          setSeats(seatsResponse);
+        } catch (liveError) {
+          const message = liveError instanceof Error ? liveError.message : '이벤트 상세 정보를 불러오지 못했습니다.';
+
+          if (!isQueueTokenError(message)) {
+            throw liveError;
+          }
+
+          clearQueueToken(eventId);
+          queueToken = await ensureQueueToken(true);
+
+          if (!queueToken || !isMounted) {
+            return;
+          }
+
+          const [eventResponse, seatsResponse] = await loadFromLiveApi(queueToken);
+          if (!isMounted) {
+            return;
+          }
+
+          setMode('LIVE');
+          setEvent(eventResponse);
+          setSeats(seatsResponse);
+        }
       } catch {
         if (!isMounted) {
           return;
@@ -73,7 +137,7 @@ export function EventDetailPage() {
     return () => {
       isMounted = false;
     };
-  }, [eventId, authToken, queueToken]);
+  }, [authToken, ensureQueueToken, eventId]);
 
   const selectedSeats = useMemo(
     () => seats.filter((seat) => selectedSeatIds.includes(seat.id)),
@@ -110,14 +174,33 @@ export function EventDetailPage() {
     }
 
     try {
-      await submitBooking(
-        eventId,
-        { seatIds: selectedSeats.map((seat) => seat.id) },
-        authToken || undefined,
-        queueToken || undefined
-      );
-      setBookingFeedback({ tone: 'success', message: '예매가 완료되었습니다.' });
-      setSelectedSeatIds([]);
+      let queueToken = await ensureQueueToken();
+      if (!queueToken) {
+        return;
+      }
+
+      try {
+        await submitBooking(eventId, { seatIds: selectedSeats.map((seat) => seat.id) }, authToken || undefined, queueToken);
+        setBookingFeedback({ tone: 'success', message: '예매가 완료되었습니다.' });
+        setSelectedSeatIds([]);
+      } catch (bookingError) {
+        const message = bookingError instanceof Error ? bookingError.message : '예매에 실패했습니다.';
+
+        if (!isQueueTokenError(message)) {
+          setBookingFeedback({ tone: 'error', message });
+          return;
+        }
+
+        clearQueueToken(eventId);
+        queueToken = await ensureQueueToken(true);
+        if (!queueToken) {
+          return;
+        }
+
+        await submitBooking(eventId, { seatIds: selectedSeats.map((seat) => seat.id) }, authToken || undefined, queueToken);
+        setBookingFeedback({ tone: 'success', message: '예매가 완료되었습니다.' });
+        setSelectedSeatIds([]);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : '예매에 실패했습니다.';
       setBookingFeedback({ tone: 'error', message });

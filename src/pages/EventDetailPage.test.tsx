@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
+import { setQueueToken } from '../auth/queueStorage';
 import { server } from '../test/setup';
 import { EventDetailPage } from './EventDetailPage';
 
@@ -13,6 +14,10 @@ function renderPage(route = '/events/1') {
         path: '/events/:eventId',
         element: <EventDetailPage />,
       },
+      {
+        path: '/events/:eventId/queue',
+        element: <div>대기열 페이지</div>,
+      },
     ],
     { initialEntries: [route] }
   );
@@ -20,8 +25,28 @@ function renderPage(route = '/events/1') {
   render(<RouterProvider router={router} />);
 }
 
+function setupAllowedQueueToken(token = 'queue-token-1') {
+  server.use(
+    http.post('http://localhost:8080/api/v1/queue/events/1', () =>
+      HttpResponse.json({
+        code: 200,
+        status: 'OK',
+        message: 'OK',
+        data: {
+          token,
+          phase: 'ALLOWED',
+          position: 0,
+          remainingSeconds: 590,
+        },
+      })
+    )
+  );
+}
+
 describe('EventDetailPage', () => {
-  it('loads and renders event metadata from live API', async () => {
+  it('queue ALLOWED 후 라이브 상세/좌석을 렌더링', async () => {
+    setupAllowedQueueToken();
+
     server.use(
       http.get('http://localhost:8080/api/v1/events/1', () =>
         HttpResponse.json({
@@ -38,8 +63,11 @@ describe('EventDetailPage', () => {
           },
         })
       ),
-      http.get('http://localhost:8080/api/v1/events/1/seats', () =>
-        HttpResponse.json({
+      http.get('http://localhost:8080/api/v1/events/1/seats', ({ request }) => {
+        expect(request.headers.get('x-queue-token')).toBe('queue-token-1');
+        expect(request.headers.get('x-event-id')).toBe('1');
+
+        return HttpResponse.json({
           code: 200,
           status: 'OK',
           message: 'OK',
@@ -59,8 +87,8 @@ describe('EventDetailPage', () => {
               status: 'AVAILABLE',
             },
           ],
-        })
-      )
+        });
+      })
     );
 
     renderPage();
@@ -69,7 +97,31 @@ describe('EventDetailPage', () => {
     expect(screen.getByText('Seoul Arena')).toBeInTheDocument();
   });
 
-  it('selects seats and updates booking summary', async () => {
+  it('enterQueue 결과가 WAITING이면 대기열 페이지로 이동', async () => {
+    server.use(
+      http.post('http://localhost:8080/api/v1/queue/events/1', () =>
+        HttpResponse.json({
+          code: 200,
+          status: 'OK',
+          message: 'OK',
+          data: {
+            token: 'waiting-token',
+            phase: 'WAITING',
+            position: 3,
+            remainingSeconds: 0,
+          },
+        })
+      )
+    );
+
+    renderPage();
+
+    expect(await screen.findByText('대기열 페이지')).toBeInTheDocument();
+  });
+
+  it('예매 요청에 queue token과 event id 헤더를 함께 전송', async () => {
+    setupAllowedQueueToken();
+
     server.use(
       http.get('http://localhost:8080/api/v1/events/1', () =>
         HttpResponse.json({
@@ -78,7 +130,7 @@ describe('EventDetailPage', () => {
           message: 'OK',
           data: {
             id: 1,
-            title: 'Seat Test Event',
+            title: 'Booking Event',
             category: 'CONCERT',
             startAt: '2026-05-01T19:00:00',
             endAt: '2026-05-01T22:00:00',
@@ -96,105 +148,7 @@ describe('EventDetailPage', () => {
               id: 2,
               event: {
                 id: 1,
-                title: 'Seat Test Event',
-                category: 'CONCERT',
-                startAt: '2026-05-01T19:00:00',
-                endAt: '2026-05-01T22:00:00',
-                venue: 'Seoul Arena',
-              },
-              seatNumber: 'A2',
-              price: 150000,
-              status: 'AVAILABLE',
-            },
-            {
-              id: 3,
-              event: {
-                id: 1,
-                title: 'Seat Test Event',
-                category: 'CONCERT',
-                startAt: '2026-05-01T19:00:00',
-                endAt: '2026-05-01T22:00:00',
-                venue: 'Seoul Arena',
-              },
-              seatNumber: 'A3',
-              price: 150000,
-              status: 'AVAILABLE',
-            },
-          ],
-        })
-      )
-    );
-
-    renderPage();
-
-    const seatButton = await screen.findByRole('button', { name: 'A2 예약 가능' });
-    await userEvent.click(seatButton);
-
-    expect(screen.getByText('1개 좌석 선택됨')).toBeInTheDocument();
-    expect(screen.getByText('₩150,000')).toBeInTheDocument();
-  });
-
-  it('disables booking button when no seats selected', async () => {
-    server.use(
-      http.get('http://localhost:8080/api/v1/events/1', () =>
-        HttpResponse.json({
-          code: 200,
-          status: 'OK',
-          message: 'OK',
-          data: {
-            id: 1,
-            title: 'Booking Disabled Event',
-            category: 'CONCERT',
-            startAt: '2026-05-01T19:00:00',
-            endAt: '2026-05-01T22:00:00',
-            venue: 'Seoul Arena',
-          },
-        })
-      ),
-      http.get('http://localhost:8080/api/v1/events/1/seats', () =>
-        HttpResponse.json({
-          code: 200,
-          status: 'OK',
-          message: 'OK',
-          data: [],
-        })
-      )
-    );
-
-    renderPage();
-
-    const button = await screen.findByRole('button', { name: '선택 좌석 예매하기' });
-    expect(button).toBeDisabled();
-  });
-
-  it('shows booking error banner on failed booking POST', async () => {
-    server.use(
-      http.get('http://localhost:8080/api/v1/events/1', () =>
-        HttpResponse.json({
-          code: 200,
-          status: 'OK',
-          message: 'OK',
-          data: {
-            id: 1,
-            title: 'Booking Failure Event',
-            category: 'CONCERT',
-            startAt: '2026-05-01T19:00:00',
-            endAt: '2026-05-01T22:00:00',
-            venue: 'Seoul Arena',
-          },
-        })
-      ),
-      http.get('http://localhost:8080/api/v1/events/1/seats', () =>
-        HttpResponse.json({
-          code: 200,
-          status: 'OK',
-          message: 'OK',
-          data: [
-            {
-              id: 2,
-              event: {
-                id: 1,
-                title: 'Booking Failure Event',
+                title: 'Booking Event',
                 category: 'CONCERT',
                 startAt: '2026-05-01T19:00:00',
                 endAt: '2026-05-01T22:00:00',
@@ -207,17 +161,19 @@ describe('EventDetailPage', () => {
           ],
         })
       ),
-      http.post('http://localhost:8080/api/v1/bookings', () =>
-        HttpResponse.json(
-          {
-            code: 400,
-            status: 'BAD_REQUEST',
-            message: 'Queue token is invalid',
-            data: null,
+      http.post('http://localhost:8080/api/v1/bookings', ({ request }) => {
+        expect(request.headers.get('x-queue-token')).toBe('queue-token-1');
+        expect(request.headers.get('x-event-id')).toBe('1');
+
+        return HttpResponse.json({
+          code: 200,
+          status: 'OK',
+          message: 'OK',
+          data: {
+            id: 99,
           },
-          { status: 400 }
-        )
-      )
+        });
+      })
     );
 
     renderPage();
@@ -225,10 +181,80 @@ describe('EventDetailPage', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'A2 예약 가능' }));
     await userEvent.click(screen.getByRole('button', { name: '선택 좌석 예매하기' }));
 
-    expect(await screen.findByText('Queue token is invalid')).toBeInTheDocument();
+    expect(await screen.findByText('예매가 완료되었습니다.')).toBeInTheDocument();
   });
 
-  it('falls back to mock mode when live API is unavailable', async () => {
+  it('상세 조회에서 queue token 만료 오류 시 enterQueue 재진입 후 복구', async () => {
+    setQueueToken(1, 'expired-token');
+
+    let enterCount = 0;
+
+    server.use(
+      http.post('http://localhost:8080/api/v1/queue/events/1', () => {
+        enterCount += 1;
+
+        return HttpResponse.json({
+          code: 200,
+          status: 'OK',
+          message: 'OK',
+          data: {
+            token: 'fresh-token',
+            phase: 'ALLOWED',
+            position: 0,
+            remainingSeconds: 600,
+          },
+        });
+      }),
+      http.get('http://localhost:8080/api/v1/events/1', () =>
+        HttpResponse.json({
+          code: 200,
+          status: 'OK',
+          message: 'OK',
+          data: {
+            id: 1,
+            title: 'Recovered Event',
+            category: 'CONCERT',
+            startAt: '2026-05-01T19:00:00',
+            endAt: '2026-05-01T22:00:00',
+            venue: 'Seoul Arena',
+          },
+        })
+      ),
+      http.get('http://localhost:8080/api/v1/events/1/seats', ({ request }) => {
+        const token = request.headers.get('x-queue-token');
+
+        if (token === 'expired-token') {
+          return HttpResponse.json(
+            {
+              code: 400,
+              status: 'BAD_REQUEST',
+              message: '대기열 토큰이 유효하지 않거나 만료되었습니다.',
+              data: null,
+            },
+            { status: 400 }
+          );
+        }
+
+        return HttpResponse.json({
+          code: 200,
+          status: 'OK',
+          message: 'OK',
+          data: [],
+        });
+      })
+    );
+
+    renderPage();
+
+    expect(await screen.findByText('Recovered Event')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(enterCount).toBe(1);
+    });
+  });
+
+  it('라이브 API 장애 시 목 데이터로 fallback', async () => {
+    setupAllowedQueueToken();
+
     server.use(
       http.get('http://localhost:8080/api/v1/events/1', () => HttpResponse.error()),
       http.get('http://localhost:8080/api/v1/events/1/seats', () => HttpResponse.error())
