@@ -26,6 +26,10 @@ function renderAuthFlow(initialEntries: string[]) {
             path: '/events/:eventId',
             element: <div>Protected Event Page</div>,
           },
+          {
+            path: '/events/:eventId/queue',
+            element: <div>Protected Queue Page</div>,
+          },
         ],
       },
     ],
@@ -38,6 +42,12 @@ function renderAuthFlow(initialEntries: string[]) {
 describe('Login flow and route guard', () => {
   it('redirects unauthenticated user to login page', async () => {
     renderAuthFlow(['/events/1']);
+
+    expect(await screen.findByRole('heading', { name: '로그인' })).toBeInTheDocument();
+  });
+
+  it('비로그인 사용자가 대기열 경로에 접근하면 로그인으로 리다이렉트', async () => {
+    renderAuthFlow(['/events/1/queue']);
 
     expect(await screen.findByRole('heading', { name: '로그인' })).toBeInTheDocument();
   });

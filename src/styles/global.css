@@ -200,6 +200,33 @@ body {
   margin-top: var(--space-2);
 }
 
+.queue-shell {
+  width: min(920px, 92vw);
+}
+
+.queue-card {
+  text-align: center;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.queue-card h1 {
+  margin: 0.3rem 0 0;
+  font-size: clamp(1.45rem, 2.2vw, 1.9rem);
+}
+
+.queue-position {
+  margin: 0;
+  font-size: clamp(1.5rem, 2.8vw, 2rem);
+  font-weight: 800;
+  color: var(--color-accent);
+}
+
+.queue-meta {
+  margin: 0;
+  color: var(--color-muted);
+}
+
 .detail-layout {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
