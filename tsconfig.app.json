@@ -14,7 +14,8 @@
     "allowImportingTsExtensions": false,
     "isolatedModules": true,
     "noEmit": true,
-    "types": ["vite/client", "vitest/globals"]
+    "types": ["vite/client"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/test/**", "src/**/*.test.ts", "src/**/*.test.tsx"]
 }

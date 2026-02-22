@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { calculateTotalPrice, isSeatSelectable } from './seatUtils';
-import { mockSeats } from '../mocks/mockData';
+import { calculateTotalPrice, isSeatSelectable } from '../../components/seatUtils';
+import { mockSeats } from '../../mocks/mockData';
 
 describe('seatUtils', () => {
   it('maps seat status to selectability', () => {

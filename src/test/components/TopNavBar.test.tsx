@@ -2,8 +2,8 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
-import { AUTH_TOKEN_KEY } from '../auth/storage';
-import { TopNavBar } from './TopNavBar';
+import { AUTH_TOKEN_KEY } from '../../auth/storage';
+import { TopNavBar } from '../../components/TopNavBar';
 
 function renderNav(initialPath = '/') {
   render(

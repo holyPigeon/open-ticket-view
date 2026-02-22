@@ -3,10 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
-import { AUTH_TOKEN_KEY } from '../auth/storage';
-import { RequireAuth } from '../components/RequireAuth';
-import { server } from '../test/setup';
-import { LoginPage } from './LoginPage';
+import { AUTH_TOKEN_KEY } from '../../auth/storage';
+import { RequireAuth } from '../../components/RequireAuth';
+import { server } from '../setup';
+import { LoginPage } from '../../pages/LoginPage';
 
 function renderAuthFlow(initialEntries: string[]) {
   const router = createMemoryRouter(
@@ -23,11 +23,11 @@ function renderAuthFlow(initialEntries: string[]) {
         element: <RequireAuth />,
         children: [
           {
-            path: '/events/:eventId',
-            element: <div>Protected Event Page</div>,
+            path: '/events/:eventId/seats',
+            element: <div>Protected Seats Page</div>,
           },
           {
-            path: '/events/:eventId/queue',
+            path: '/events/:eventId/seats/queue',
             element: <div>Protected Queue Page</div>,
           },
         ],
@@ -41,13 +41,13 @@ function renderAuthFlow(initialEntries: string[]) {
 
 describe('Login flow and route guard', () => {
   it('redirects unauthenticated user to login page', async () => {
-    renderAuthFlow(['/events/1']);
+    renderAuthFlow(['/events/1/seats']);
 
     expect(await screen.findByRole('heading', { name: '로그인' })).toBeInTheDocument();
   });
 
   it('비로그인 사용자가 대기열 경로에 접근하면 로그인으로 리다이렉트', async () => {
-    renderAuthFlow(['/events/1/queue']);
+    renderAuthFlow(['/events/1/seats/queue']);
 
     expect(await screen.findByRole('heading', { name: '로그인' })).toBeInTheDocument();
   });
@@ -70,11 +70,11 @@ describe('Login flow and route guard', () => {
       )
     );
 
-    renderAuthFlow(['/events/3']);
+    renderAuthFlow(['/events/3/seats']);
 
     await userEvent.click(await screen.findByRole('button', { name: '로그인' }));
 
-    expect(await screen.findByText('Protected Event Page')).toBeInTheDocument();
+    expect(await screen.findByText('Protected Seats Page')).toBeInTheDocument();
     expect(localStorage.getItem(AUTH_TOKEN_KEY)).toBe('jwt-login');
   });
 

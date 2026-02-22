@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AUTH_TOKEN_KEY, clearAuthToken, getAuthToken, isAuthenticated, setAuthToken } from './storage';
+import { AUTH_TOKEN_KEY, clearAuthToken, getAuthToken, isAuthenticated, setAuthToken } from '../../auth/storage';
 
 describe('auth storage helpers', () => {
   it('stores and reads token from localStorage', () => {

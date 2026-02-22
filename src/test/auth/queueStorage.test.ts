@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clearQueueToken, getQueueToken, setQueueToken } from './queueStorage';
+import { clearAllQueueTokens, clearQueueToken, getQueueToken, setQueueToken } from '../../auth/queueStorage';
 
 describe('queue token storage helpers', () => {
   it('stores and reads queue token per event', () => {
@@ -21,5 +21,17 @@ describe('queue token storage helpers', () => {
 
     expect(getQueueToken(1)).toBe('queue-token-1');
     expect(getQueueToken(2)).toBe('queue-token-2');
+  });
+
+  it('clears all queue tokens at once', () => {
+    setQueueToken(1, 'queue-token-1');
+    setQueueToken(2, 'queue-token-2');
+    localStorage.setItem('other-key', 'keep-me');
+
+    clearAllQueueTokens();
+
+    expect(getQueueToken(1)).toBeNull();
+    expect(getQueueToken(2)).toBeNull();
+    expect(localStorage.getItem('other-key')).toBe('keep-me');
   });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { http, HttpResponse } from 'msw';
-import { server } from '../test/setup';
-import { checkQueueStatus, enterQueue, fetchEvents, login } from './openTicketApi';
+import { server } from '../setup';
+import { checkQueueStatus, enterQueue, fetchEventDetail, fetchEvents, leaveQueue, login } from '../../api/openTicketApi';
 
 describe('login API', () => {
   it('sends JSON body and parses login response envelope', async () => {
@@ -51,6 +51,7 @@ describe('events API', () => {
                 startAt: '2026-05-01T19:00:00',
                 endAt: '2026-05-01T22:00:00',
                 venue: '잠실 주경기장',
+                imageUrl: '/images/events/event-1.jpg',
               },
             ],
             pageable: {
@@ -79,11 +80,37 @@ describe('events API', () => {
 
     expect(response.content).toHaveLength(1);
     expect(response.content[0].title).toBe('이벤트 A');
+    expect(response.content[0].posterImageUrl).toBe('http://localhost:8080/images/events/event-1.jpg');
     expect(requestQuery).toContain('page=0');
     expect(requestQuery).toContain('size=12');
     expect(requestQuery).toContain('sort=id%2Cdesc');
     expect(requestQuery).toContain('title=%EC%9D%B4%EB%B2%A4%ED%8A%B8');
     expect(requestQuery).toContain('category=CONCERT');
+  });
+
+  it('이벤트 상세 응답에서 imageUrl만 내려와도 posterImageUrl로 정규화', async () => {
+    server.use(
+      http.get('http://localhost:8080/api/v1/events/1', () =>
+        HttpResponse.json({
+          code: 200,
+          status: 'OK',
+          message: 'OK',
+          data: {
+            id: 1,
+            title: '이벤트 상세 A',
+            category: 'CONCERT',
+            startAt: '2026-05-01T19:00:00',
+            endAt: '2026-05-01T22:00:00',
+            venue: '잠실 주경기장',
+            imageUrl: '/images/events/event-1.jpg',
+          },
+        })
+      )
+    );
+
+    const response = await fetchEventDetail(1);
+
+    expect(response.posterImageUrl).toBe('http://localhost:8080/images/events/event-1.jpg');
   });
 });
 
@@ -141,7 +168,35 @@ describe('queue API', () => {
     const response = await checkQueueStatus(1, 'queue-token-1');
 
     expect(requestQuery).toContain('token=queue-token-1');
+    expect(requestQuery).toMatch(/_ts=\d+/);
     expect(response.phase).toBe('ALLOWED');
     expect(response.remainingSeconds).toBe(590);
+  });
+
+  it('leaveQueue가 queueToken body/Authorization을 전달하고 응답을 파싱', async () => {
+    let authHeader = '';
+    let requestBody: unknown = null;
+
+    server.use(
+      http.post('http://localhost:8080/api/v1/queue/events/1/leave', async ({ request }) => {
+        authHeader = request.headers.get('authorization') ?? '';
+        requestBody = await request.json();
+
+        return HttpResponse.json({
+          code: 200,
+          status: 'OK',
+          message: 'OK',
+          data: {
+            left: true,
+          },
+        });
+      })
+    );
+
+    const response = await leaveQueue(1, 'queue-token-1', 'jwt-token');
+
+    expect(authHeader).toBe('Bearer jwt-token');
+    expect(requestBody).toEqual({ queueToken: 'queue-token-1' });
+    expect(response).toEqual({ left: true });
   });
 });
