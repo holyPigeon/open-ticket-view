@@ -7,6 +7,8 @@ import {
   EventResponse,
   LoginRequest,
   LoginResponse,
+  QueueLeaveRequest,
+  QueueLeaveResponse,
   QueueStatusResponse,
   SeatResponse,
   bookingCreateSchema,
@@ -15,6 +17,8 @@ import {
   loginRequestSchema,
   loginResponseSchema,
   queueStatusSchema,
+  queueLeaveRequestSchema,
+  queueLeaveResponseSchema,
   seatSchema,
 } from './contracts';
 
@@ -25,8 +29,11 @@ const bookingResponseSchema = z.object({
 type BookingResponse = z.infer<typeof bookingResponseSchema>;
 
 export function createTicketClient(authToken?: string, queueToken?: string) {
+  // In Vite dev, use relative path so requests go through dev-server proxy (/api -> :8080).
+  const defaultBaseUrl = import.meta.env.DEV ? '' : 'http://localhost:8080';
+
   return new TicketClient({
-    baseUrl: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080',
+    baseUrl: import.meta.env.VITE_API_BASE_URL ?? defaultBaseUrl,
     authToken,
     queueToken,
   });
@@ -72,7 +79,20 @@ export async function enterQueue(eventId: number, authToken?: string): Promise<Q
 export async function checkQueueStatus(eventId: number, token: string, authToken?: string): Promise<QueueStatusResponse> {
   const client = createTicketClient(authToken);
   const encodedToken = encodeURIComponent(token);
-  const result = await client.get(`/api/v1/queue/events/${eventId}?token=${encodedToken}`, queueStatusSchema);
+  const cacheBuster = Date.now();
+  const result = await client.get(`/api/v1/queue/events/${eventId}?token=${encodedToken}&_ts=${cacheBuster}`, queueStatusSchema);
+  return result.data;
+}
+
+export async function leaveQueue(
+  eventId: number,
+  queueToken: string,
+  authToken?: string,
+  options?: { keepalive?: boolean }
+): Promise<QueueLeaveResponse> {
+  const client = createTicketClient(authToken);
+  const payload = queueLeaveRequestSchema.parse({ queueToken }) as QueueLeaveRequest;
+  const result = await client.post(`/api/v1/queue/events/${eventId}/leave`, payload, queueLeaveResponseSchema, undefined, options);
   return result.data;
 }
 

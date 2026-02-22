@@ -16,6 +16,18 @@ function statusToKorean(status: string): string {
 }
 
 export function SeatGrid({ seats, selectedSeatIds, onToggleSeat }: SeatGridProps) {
+  if (seats.length === 0) {
+    return (
+      <section className="card fade-in" aria-label="좌석 선택">
+        <div className="section-head">
+          <h3>좌석 선택</h3>
+          <span className="section-subtext">예매 가능한 좌석만 선택할 수 있습니다</span>
+        </div>
+        <p className="seat-empty-state">현재 선택 가능한 좌석이 없습니다.</p>
+      </section>
+    );
+  }
+
   const groupedSeats = groupSeatsByRow(seats);
   const orderedRows = Object.keys(groupedSeats).sort();
 

@@ -6,14 +6,60 @@ export type Category = z.infer<typeof categorySchema>;
 export const seatStatusSchema = z.enum(['AVAILABLE', 'BOOKED', 'SOLD']);
 export type SeatStatus = z.infer<typeof seatStatusSchema>;
 
-export const eventSchema = z.object({
-  id: z.number(),
-  title: z.string(),
-  category: categorySchema,
-  startAt: z.string(),
-  endAt: z.string(),
-  venue: z.string(),
-});
+function sanitizeImageUrl(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function resolveApiBaseUrl(): string {
+  const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+  if (configuredBaseUrl) {
+    return configuredBaseUrl;
+  }
+
+  return 'http://localhost:8080';
+}
+
+function normalizeImageUrl(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return new URL(value, resolveApiBaseUrl()).toString();
+  } catch {
+    return value;
+  }
+}
+
+export const eventSchema = z
+  .object({
+    id: z.number(),
+    title: z.string(),
+    category: categorySchema,
+    startAt: z.string(),
+    endAt: z.string(),
+    venue: z.string(),
+    imageUrl: z.string().optional().nullable(),
+    posterImageUrl: z.string().optional().nullable(),
+  })
+  .transform((input) => {
+    const selectedImageUrl = sanitizeImageUrl(input.posterImageUrl) ?? sanitizeImageUrl(input.imageUrl);
+
+    return {
+      id: input.id,
+      title: input.title,
+      category: input.category,
+      startAt: input.startAt,
+      endAt: input.endAt,
+      venue: input.venue,
+      posterImageUrl: normalizeImageUrl(selectedImageUrl),
+    };
+  });
 export type EventResponse = z.infer<typeof eventSchema>;
 
 export const queuePhaseSchema = z.enum(['WAITING', 'ALLOWED']);
@@ -26,6 +72,14 @@ export const queueStatusSchema = z.object({
   remainingSeconds: z.number(),
 });
 export type QueueStatusResponse = z.infer<typeof queueStatusSchema>;
+
+export const queueLeaveRequestSchema = z.object({
+  queueToken: z.string(),
+});
+export type QueueLeaveRequest = z.infer<typeof queueLeaveRequestSchema>;
+
+export const queueLeaveResponseSchema = z.object({}).passthrough();
+export type QueueLeaveResponse = z.infer<typeof queueLeaveResponseSchema>;
 
 export const pageSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
   z.object({

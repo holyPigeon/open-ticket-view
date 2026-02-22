@@ -47,41 +47,43 @@ export function LoginPage() {
     <main className="login-shell">
       <TopNavBar className="login-shell__nav" />
       <section className="login-card fade-in" aria-label="로그인 폼">
-        <img className="login-logo" src="/open-logo.svg" alt="오픈 로고" />
-        <h1>로그인</h1>
-        <p className="login-subtext">계정으로 로그인한 뒤 이벤트 상세 페이지에 진입할 수 있습니다.</p>
+        <div className="login-card__content">
+          <img className="login-logo" src="/open-logo.svg" alt="오픈 로고" />
+          <h1>로그인</h1>
+          <p className="login-subtext">계정으로 로그인한 뒤 이벤트 상세 페이지에 진입할 수 있습니다.</p>
 
-        {errorMessage ? <InlineAlert tone="error" message={errorMessage} /> : null}
+          {errorMessage ? <InlineAlert tone="error" message={errorMessage} /> : null}
 
-        <form className="login-form" onSubmit={handleSubmit}>
-          <label className="field">
-            <span>이메일</span>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="user1@gmail.com"
-              autoComplete="email"
-            />
-          </label>
+          <form className="login-form" onSubmit={handleSubmit}>
+            <label className="field">
+              <span>이메일</span>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="user1@gmail.com"
+                autoComplete="email"
+              />
+            </label>
 
-          <label className="field">
-            <span>비밀번호</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="password"
-              autoComplete="current-password"
-            />
-          </label>
+            <label className="field">
+              <span>비밀번호</span>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="password"
+                autoComplete="current-password"
+              />
+            </label>
 
-          <button className="button-primary" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? '로그인 중...' : '로그인'}
-          </button>
-        </form>
+            <button className="button-primary" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? '로그인 중...' : '로그인'}
+            </button>
+          </form>
 
-        <p className="login-hint">개발용 계정: user1@gmail.com / password1</p>
+          <p className="login-hint">개발용 계정: user1@gmail.com / password1</p>
+        </div>
       </section>
     </main>
   );

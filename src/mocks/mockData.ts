@@ -7,6 +7,7 @@ export const mockEvent: EventResponse = {
   startAt: '2026-05-01T19:00:00',
   endAt: '2026-05-01T22:00:00',
   venue: '잠실 주경기장',
+  posterImageUrl: null,
 };
 
 export const mockSeats: SeatResponse[] = [

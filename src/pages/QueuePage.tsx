@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { QueueStatusResponse } from '../api/contracts';
-import { checkQueueStatus, enterQueue } from '../api/openTicketApi';
+import { checkQueueStatus } from '../api/openTicketApi';
+import { isSessionExpiredError, promptSessionExpired } from '../auth/session';
 import { clearQueueToken, getQueueToken, setQueueToken } from '../auth/queueStorage';
 import { getAuthToken } from '../auth/storage';
 import { InlineAlert } from '../components/InlineAlert';
@@ -24,6 +25,15 @@ function formatRemainingSeconds(remainingSeconds: number): string {
   return `${minutes}분 ${seconds.toString().padStart(2, '0')}초`;
 }
 
+function formatUpdatedAt(date: Date): string {
+  return date.toLocaleTimeString('ko-KR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+}
+
 export function QueuePage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -34,8 +44,10 @@ export function QueuePage() {
   const [status, setStatus] = useState<QueueStatusResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
 
   const locationState = (location.state as QueueLocationState | null) ?? null;
+  const currentPath = `/events/${eventId}/seats/queue`;
   const initialToken = useMemo(
     () => locationState?.token || getQueueToken(eventId) || '',
     [eventId, locationState?.token]
@@ -43,39 +55,11 @@ export function QueuePage() {
 
   useEffect(() => {
     let isMounted = true;
-    let intervalId: number | null = null;
+    let timeoutId: number | null = null;
 
-    function goToDetailWithToken(nextToken: string) {
+    function goToSeatSelectionWithToken(nextToken: string) {
       setQueueToken(eventId, nextToken);
-      navigate(`/events/${eventId}`, { replace: true });
-    }
-
-    async function enterAndHandleQueue() {
-      const entered = await enterQueue(eventId, authToken || undefined);
-      setQueueToken(eventId, entered.token);
-
-      if (entered.phase === 'ALLOWED') {
-        goToDetailWithToken(entered.token);
-        return null;
-      }
-
-      return entered.token;
-    }
-
-    async function reenterAfterInvalidToken(): Promise<string | null> {
-      clearQueueToken(eventId);
-      const reentered = await enterAndHandleQueue();
-      if (!reentered || !isMounted) {
-        return null;
-      }
-
-      const checked = await checkOnce(reentered);
-      if (!checked || !isMounted) {
-        return null;
-      }
-
-      setErrorMessage('');
-      return checked;
+      navigate(`/events/${eventId}/seats`, { replace: true });
     }
 
     async function checkOnce(token: string): Promise<string | null> {
@@ -87,9 +71,10 @@ export function QueuePage() {
 
       setStatus(checked);
       setQueueToken(eventId, checked.token);
+      setLastUpdatedAt(new Date());
 
       if (checked.phase === 'ALLOWED') {
-        goToDetailWithToken(checked.token);
+        goToSeatSelectionWithToken(checked.token);
         return null;
       }
 
@@ -97,108 +82,105 @@ export function QueuePage() {
     }
 
     async function startPolling() {
+      if (!initialToken) {
+        navigate(`/events/${eventId}`, { replace: true });
+        return;
+      }
+
       setIsLoading(true);
       setErrorMessage('');
 
-      try {
-        let token = initialToken;
+      let token = initialToken;
 
-        if (!token) {
-          const enteredToken = await enterAndHandleQueue();
-          if (!enteredToken || !isMounted) {
+      async function poll() {
+        try {
+          const nextToken = await checkOnce(token);
+
+          if (!isMounted || !nextToken) {
             return;
           }
-          token = enteredToken;
-        }
 
-        let checkedToken: string | null = null;
-
-        try {
-          checkedToken = await checkOnce(token);
+          token = nextToken;
+          setIsLoading(false);
+          timeoutId = window.setTimeout(() => {
+            void poll();
+          }, POLLING_INTERVAL_MS);
         } catch (error) {
+          if (!isMounted) {
+            return;
+          }
+
+          if (isSessionExpiredError(error)) {
+            promptSessionExpired({
+              fromPath: currentPath,
+              requiresAuthRoute: true,
+            });
+            return;
+          }
+
           const message = error instanceof Error ? error.message : '대기열 상태를 확인하지 못했습니다.';
-          if (!message.includes('유효하지 않은 대기열 토큰')) {
-            throw error;
+          if (message.includes('유효하지 않은 대기열 토큰')) {
+            clearQueueToken(eventId);
+            navigate(`/events/${eventId}`, { replace: true });
+            return;
           }
 
-          checkedToken = await reenterAfterInvalidToken();
+          setIsLoading(false);
+          setErrorMessage(message);
         }
-
-        if (!checkedToken || !isMounted) {
-          return;
-        }
-        token = checkedToken;
-
-        setIsLoading(false);
-
-        intervalId = window.setInterval(async () => {
-          try {
-            const nextToken = await checkOnce(token);
-            if (nextToken && nextToken !== token) {
-              token = nextToken;
-            }
-          } catch (error) {
-            if (!isMounted) {
-              return;
-            }
-
-            const message = error instanceof Error ? error.message : '대기열 상태를 확인하지 못했습니다.';
-
-            if (message.includes('유효하지 않은 대기열 토큰')) {
-              try {
-                const recovered = await reenterAfterInvalidToken();
-                if (recovered) {
-                  token = recovered;
-                }
-              } catch (retryError) {
-                const retryMessage = retryError instanceof Error ? retryError.message : '대기열 재진입에 실패했습니다.';
-                setErrorMessage(retryMessage);
-              }
-            } else {
-              setErrorMessage(message);
-            }
-          }
-        }, POLLING_INTERVAL_MS);
-      } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
-        setIsLoading(false);
-        setErrorMessage(error instanceof Error ? error.message : '대기열 정보를 불러오지 못했습니다.');
       }
+
+      await poll();
     }
 
     void startPolling();
 
     return () => {
       isMounted = false;
-      if (intervalId !== null) {
-        window.clearInterval(intervalId);
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
       }
     };
-  }, [authToken, eventId, initialToken, navigate]);
+  }, [authToken, currentPath, eventId, initialToken, navigate]);
 
   return (
     <main className="page-shell queue-shell">
       <TopNavBar />
 
       <section className="card queue-card fade-in" aria-label="대기열 정보">
-        <p className="eyebrow">대기열</p>
-        <h1>예매 대기 중입니다</h1>
+        <header className="queue-card__header">
+          <p className="eyebrow">대기열</p>
+          <h1>예매 대기 중입니다</h1>
+        </header>
 
-        {isLoading ? <p className="queue-meta">대기열 정보를 확인하는 중...</p> : null}
+        <div className="queue-card__content">
+          {isLoading || status?.phase === 'WAITING' ? (
+            <div className="queue-loader-block">
+              <div className="queue-loader" aria-hidden="true" />
 
-        {!isLoading && status?.phase === 'WAITING' ? (
-          <>
-            <p className="queue-position">{status.position}번째 순서입니다.</p>
-            <p className="queue-meta">2초마다 순서를 갱신합니다.</p>
-          </>
-        ) : null}
+              {isLoading ? <p className="queue-meta">대기열 정보를 확인하는 중...</p> : null}
 
-        {!isLoading && status?.phase === 'ALLOWED' ? (
-          <p className="queue-meta">입장 허용됨 ({formatRemainingSeconds(status.remainingSeconds)})</p>
-        ) : null}
+              {!isLoading && status?.phase === 'WAITING' ? (
+                <>
+                  <p className="queue-position queue-position--animated">{status.position}번째 순서입니다.</p>
+                  <p className="queue-meta">2초마다 순서를 갱신합니다.</p>
+                </>
+              ) : null}
+            </div>
+          ) : (
+            <p className="queue-meta">
+              {status?.phase === 'ALLOWED'
+                ? `입장 허용됨 (${formatRemainingSeconds(status.remainingSeconds)})`
+                : '대기열 정보를 다시 불러오는 중입니다.'}
+            </p>
+          )}
+        </div>
+
+        <footer className="queue-card__footer" aria-live="polite">
+          {!isLoading && status?.phase === 'WAITING' && lastUpdatedAt ? (
+            <p className="queue-meta">마지막 갱신: {formatUpdatedAt(lastUpdatedAt)}</p>
+          ) : null}
+        </footer>
       </section>
 
       {errorMessage ? <InlineAlert tone="info" message={errorMessage} /> : null}

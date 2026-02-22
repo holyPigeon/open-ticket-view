@@ -1,0 +1,24 @@
+<svg width="900" height="1200" viewBox="0 0 900 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="900" y2="1200" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1D3557"/>
+      <stop offset="1" stop-color="#457B9D"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(740 260) rotate(124) scale(520 620)">
+      <stop stop-color="#A8DADC" stop-opacity="0.78"/>
+      <stop offset="1" stop-color="#A8DADC" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="900" height="1200" fill="url(#bg)"/>
+  <rect width="900" height="1200" fill="url(#glow)"/>
+  <g opacity="0.16">
+    <circle cx="120" cy="180" r="150" fill="white"/>
+    <circle cx="820" cy="1080" r="220" fill="white"/>
+  </g>
+  <text x="80" y="190" fill="#F1FAEE" font-family="Manrope, sans-serif" font-size="58" font-weight="700">OPEN TICKET</text>
+  <text x="80" y="270" fill="#F1FAEE" font-family="Manrope, sans-serif" font-size="98" font-weight="800">SAMPLE POSTER</text>
+  <text x="80" y="352" fill="#F1FAEE" font-family="Manrope, sans-serif" font-size="40" font-weight="500">No poster image provided</text>
+  <rect x="80" y="430" width="740" height="2" fill="#F1FAEE" fill-opacity="0.6"/>
+  <text x="80" y="520" fill="#F1FAEE" font-family="Manrope, sans-serif" font-size="42" font-weight="600">아티스트와 공연 정보가 준비 중입니다.</text>
+  <text x="80" y="580" fill="#F1FAEE" font-family="Manrope, sans-serif" font-size="42" font-weight="600">포스터 이미지가 도착하면 자동으로 교체됩니다.</text>
+</svg>
