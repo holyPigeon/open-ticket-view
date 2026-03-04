@@ -59,11 +59,25 @@ describe('QueuePage', () => {
 
     renderQueuePage(['/events/1/seats/queue'], 'queue-token-1');
 
-    expect(await screen.findByText('4번째 순서입니다.')).toBeInTheDocument();
+    const title = await screen.findByText('예매 대기 중입니다');
+    const queueContent = title.closest('.queue-content');
+    expect(queueContent).toBeInTheDocument();
+    expect(screen.queryByText('대기열')).not.toBeInTheDocument();
+    expect(screen.queryByText('open')).not.toBeInTheDocument();
+    expect(screen.queryByText('ticket')).not.toBeInTheDocument();
+
+    const queuePosition = await screen.findByText('4번째 순서입니다.');
+    const pollingText = screen.getByText('2초마다 순서를 갱신합니다.');
+    const lastUpdated = screen.getByText(/마지막 갱신:/);
+
+    expect(queuePosition).toBeInTheDocument();
+    expect(queuePosition.closest('.queue-content')).toBe(queueContent);
+    expect(pollingText.closest('.queue-content')).toBe(queueContent);
+    expect(lastUpdated.closest('.queue-content')).toBe(queueContent);
+    expect(screen.queryByText('layout: cluster-v3')).not.toBeInTheDocument();
+
     expect(document.querySelector('.queue-loader')).toBeInTheDocument();
     expect(document.querySelector('.queue-position--animated')).toBeInTheDocument();
-    expect(screen.getByText('2초마다 순서를 갱신합니다.')).toBeInTheDocument();
-    expect(screen.getByText(/마지막 갱신:/)).toBeInTheDocument();
   });
 
   it('2초마다 checkStatus polling을 수행', async () => {

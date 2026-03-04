@@ -6,13 +6,11 @@ import { isSessionExpiredError, promptSessionExpired } from '../auth/session';
 import { clearQueueToken, getQueueToken, setQueueToken } from '../auth/queueStorage';
 import { getAuthToken } from '../auth/storage';
 import { InlineAlert } from '../components/InlineAlert';
-import { TopNavBar } from '../components/TopNavBar';
 
 type QueueLocationState = {
   token?: string;
 };
 
-const POLLING_INTERVAL_MS = 2000;
 
 function parseEventId(rawId: string | undefined): number {
   const parsed = Number(rawId);
@@ -62,7 +60,7 @@ export function QueuePage() {
       navigate(`/events/${eventId}/seats`, { replace: true });
     }
 
-    async function checkOnce(token: string): Promise<string | null> {
+    async function checkOnce(token: string): Promise<{ token: string; pollIntervalMs: number } | null> {
       const checked = await checkQueueStatus(eventId, token, authToken || undefined);
 
       if (!isMounted) {
@@ -78,7 +76,10 @@ export function QueuePage() {
         return null;
       }
 
-      return checked.token;
+      return {
+        token: checked.token,
+        pollIntervalMs: (checked.pollIntervalSeconds ?? 2) * 1000,
+      };
     }
 
     async function startPolling() {
@@ -94,17 +95,17 @@ export function QueuePage() {
 
       async function poll() {
         try {
-          const nextToken = await checkOnce(token);
+          const result = await checkOnce(token);
 
-          if (!isMounted || !nextToken) {
+          if (!isMounted || !result) {
             return;
           }
 
-          token = nextToken;
+          token = result.token;
           setIsLoading(false);
           timeoutId = window.setTimeout(() => {
             void poll();
-          }, POLLING_INTERVAL_MS);
+          }, result.pollIntervalMs);
         } catch (error) {
           if (!isMounted) {
             return;
@@ -145,42 +146,38 @@ export function QueuePage() {
 
   return (
     <main className="page-shell queue-shell">
-      <TopNavBar />
+      <section className="queue-content fade-in" aria-label="대기열 정보" aria-live="polite">
+        <h1 className="queue-title">예매 대기 중입니다</h1>
 
-      <section className="card queue-card fade-in" aria-label="대기열 정보">
-        <header className="queue-card__header">
-          <p className="eyebrow">대기열</p>
-          <h1>예매 대기 중입니다</h1>
-        </header>
-
-        <div className="queue-card__content">
-          {isLoading || status?.phase === 'WAITING' ? (
-            <div className="queue-loader-block">
+        {isLoading ? (
+          <div className="queue-focus-panel queue-focus-panel--loading">
+            <div className="queue-loader-block queue-gap-after-title">
               <div className="queue-loader" aria-hidden="true" />
-
-              {isLoading ? <p className="queue-meta">대기열 정보를 확인하는 중...</p> : null}
-
-              {!isLoading && status?.phase === 'WAITING' ? (
-                <>
-                  <p className="queue-position queue-position--animated">{status.position}번째 순서입니다.</p>
-                  <p className="queue-meta">2초마다 순서를 갱신합니다.</p>
-                </>
-              ) : null}
             </div>
-          ) : (
-            <p className="queue-meta">
-              {status?.phase === 'ALLOWED'
-                ? `입장 허용됨 (${formatRemainingSeconds(status.remainingSeconds)})`
-                : '대기열 정보를 다시 불러오는 중입니다.'}
-            </p>
-          )}
-        </div>
+            <p className="queue-meta queue-meta--loading">대기열 정보를 확인하는 중...</p>
+          </div>
+        ) : null}
 
-        <footer className="queue-card__footer" aria-live="polite">
-          {!isLoading && status?.phase === 'WAITING' && lastUpdatedAt ? (
-            <p className="queue-meta">마지막 갱신: {formatUpdatedAt(lastUpdatedAt)}</p>
-          ) : null}
-        </footer>
+        {!isLoading && status?.phase === 'WAITING' ? (
+          <div className="queue-focus-panel queue-focus-panel--waiting">
+            <div className="queue-loader-block queue-gap-after-title">
+              <div className="queue-loader" aria-hidden="true" />
+            </div>
+            <p className="queue-position queue-position--animated">{status.position}번째 순서입니다.</p>
+            <div className="queue-meta-stack">
+              <p className="queue-meta queue-meta--polling">{status.pollIntervalSeconds ?? 2}초마다 순서를 갱신합니다.</p>
+              {lastUpdatedAt ? <p className="queue-meta queue-meta--updated">마지막 갱신: {formatUpdatedAt(lastUpdatedAt)}</p> : null}
+            </div>
+          </div>
+        ) : null}
+
+        {!isLoading && status?.phase !== 'WAITING' ? (
+          <p className="queue-meta queue-meta--fallback">
+            {status?.phase === 'ALLOWED'
+              ? `입장 허용됨 (${formatRemainingSeconds(status.remainingSeconds)})`
+              : '대기열 정보를 다시 불러오는 중입니다.'}
+          </p>
+        ) : null}
       </section>
 
       {errorMessage ? <InlineAlert tone="info" message={errorMessage} /> : null}
