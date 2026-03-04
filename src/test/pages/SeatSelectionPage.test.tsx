@@ -96,6 +96,10 @@ describe('SeatSelectionPage', () => {
     renderPage();
 
     expect(await screen.findByText('Live Event')).toBeInTheDocument();
+    const datetimeText = screen.getByText('2026.5.1 19:00 ~ 22:00');
+    expect(datetimeText).toBeInTheDocument();
+    expect(datetimeText).toHaveClass('event-summary__meta--datetime');
+    expect(screen.queryByText(/May/)).not.toBeInTheDocument();
     expect(screen.getByText('Seoul Arena')).toBeInTheDocument();
   });
 

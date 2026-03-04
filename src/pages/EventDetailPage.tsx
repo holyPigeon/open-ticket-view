@@ -7,7 +7,8 @@ import { DetailTab, EventDetailTabs } from './components/EventDetailTabs';
 import { useEventCalendar } from './hooks/useEventCalendar';
 import { useEventDetailData } from './hooks/useEventDetailData';
 import { useStartBooking } from './hooks/useStartBooking';
-import { formatDateRange, parseEventDetailId } from './eventDetail.utils';
+import { parseEventDetailId } from './eventDetail.utils';
+import { formatDotDateTimeRange } from '../utils/dateFormat';
 
 const SAMPLE_POSTER_IMAGE = '/sample-poster.svg';
 
@@ -83,6 +84,10 @@ export function EventDetailPage() {
             {mode === 'MOCK' ? '목 데이터 모드' : '실서버 API'}
           </span>
         </div>
+        <div className="detail-heading__meta-stack">
+          <p className="detail-heading__meta detail-heading__meta--datetime">{formatDotDateTimeRange(event.startAt, event.endAt)}</p>
+          <p className="detail-heading__meta">{event.venue}</p>
+        </div>
       </section>
 
       {entryNotice ? <InlineAlert tone="info" message={entryNotice} /> : null}
@@ -94,8 +99,6 @@ export function EventDetailPage() {
             src={event.posterImageUrl || SAMPLE_POSTER_IMAGE}
             alt={`${event.title} 포스터`}
           />
-          <p className="event-detail-action__meta">{formatDateRange(event.startAt, event.endAt)}</p>
-          <p className="event-detail-action__meta">{event.venue}</p>
           <p className="event-detail-action__description">좌석 선택과 결제는 예매 페이지에서 진행됩니다.</p>
           <EventDetailTabs activeTab={activeTab} onTabChange={setActiveTab} venue={event.venue} />
         </div>

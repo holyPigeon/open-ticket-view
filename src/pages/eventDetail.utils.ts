@@ -1,20 +1,12 @@
+import { formatDotDateTimeRange } from '../utils/dateFormat';
+
 export function parseEventDetailId(rawId: string | undefined): number {
   const parsed = Number(rawId);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
 }
 
 export function formatDateRange(startAt: string, endAt: string): string {
-  const formatOptions: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  };
-
-  const start = new Date(startAt).toLocaleString('ko-KR', formatOptions);
-  const end = new Date(endAt).toLocaleString('ko-KR', formatOptions);
-  return `${start} - ${end}`;
+  return formatDotDateTimeRange(startAt, endAt);
 }
 
 export function startOfDay(date: Date): Date {

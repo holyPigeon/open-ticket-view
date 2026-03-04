@@ -62,7 +62,11 @@ describe('EventDetailPage', () => {
     renderPage();
 
     expect(await screen.findByText('Public Event')).toBeInTheDocument();
+    const datetimeText = screen.getByText('2026.5.1 19:00 ~ 22:00');
+    expect(datetimeText).toBeInTheDocument();
+    expect(datetimeText).toHaveClass('detail-heading__meta--datetime');
     expect(screen.getByText('Seoul Arena')).toBeInTheDocument();
+    expect(document.querySelector('.event-detail-action__meta')).not.toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Public Event 포스터' })).toHaveAttribute('src', '/sample-poster.svg');
     expect(screen.getByRole('button', { name: '예매하기' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '관람일' })).toBeInTheDocument();
