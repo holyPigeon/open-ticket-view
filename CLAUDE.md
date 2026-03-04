@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 # Dev server (Vite, proxies /api to localhost:8080)
 npm run dev
+# UI 검증은 반드시 http://127.0.0.1:5173 사용
 
 # Build (TypeScript check + Vite build)
 npm run build
