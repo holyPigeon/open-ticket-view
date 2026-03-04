@@ -70,6 +70,7 @@ export const queueStatusSchema = z.object({
   phase: queuePhaseSchema,
   position: z.number(),
   remainingSeconds: z.number(),
+  pollIntervalSeconds: z.number().optional(),
 });
 export type QueueStatusResponse = z.infer<typeof queueStatusSchema>;
 
